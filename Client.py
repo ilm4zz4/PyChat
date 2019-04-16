@@ -3,7 +3,7 @@
 """
 Created on Fri Apr  5 22:09:33 2019
 
-@author: mrosellini
+@author: ilm4zz4
 """
 
 import re #regexp
@@ -22,9 +22,6 @@ import select
 help_message="""
 !help --> mostra l'elenco dei comandi disponibili
 !connect user --> start a new chat with the specific user
-!updateGroup namegroup user1 user2 ... userN --> create an user group
-!leaveGroup namegroup --> leave the group
-!connectGroup namegroup --> leave the group
 !usersList --> get the list of user in the server
 !disconnect --> free the client from the current chant
 !quit --> terminazione
@@ -243,9 +240,6 @@ class Client(object):
                                 self.disconnectFromUser()
                                 connectionApproved(addr, data)
 
-
-
-
                     elif data['action'] == 'connect' and data['direction'] == 'answ':
 
                         if data['result'] == 'OK':
@@ -267,11 +261,6 @@ class Client(object):
                 elif data['type'] == 'text':
                     self.printlog (bcolors.ENDC,  bcolors.OKBLUE + '[' + data['whoami']['nickname'] + ']' + bcolors.ENDC + ' - ' + data['msg'])
 
-                    #if self.status == self.status_states['unregitered'] and  addr == self.SERVER_UDP_IP and data == "OK":
-                    #        self.status = self.status_state['regitered']
-                    #elif self.status == self.status_state['regitered'] and
-
-
             except socket.error as e:
                 #write to file or whatever
                 if str(e) == "[Errno 35] Resource temporarily unavailable":
@@ -283,9 +272,6 @@ class Client(object):
 
                 else:
                     self.printlog(bcolors.WARNING, str(e))
-
-
-
 
 
     def thread_commands(self):
