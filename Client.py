@@ -20,11 +20,11 @@ import select
 
 
 help_message="""
-!help --> mostra l'elenco dei comandi disponibili
-!connect user --> start a new chat with the specific user
-!usersList --> get the list of user in the server
-!disconnect --> free the client from the current chant
-!quit --> terminazione
+!help --> show the set of the commands
+!connect <user> --> start a new chat with the specific user
+!usersList --> get the list of the users from the server
+!disconnect --> free the client from the current chat
+!quit --> exit from application
 """
 
 class bcolors:
@@ -40,11 +40,16 @@ class bcolors:
 
 class Client(object):
 
+    #Status of the client
+    #0: the threads are in temination
+    #1: the threads up, but not registered into TCP Server
+    #2: the client is regitered into TCP Server
+    #3: the client has started a UDP communication with other client
     status_states = {'quit': 0, 'unregitered':1, 'regitered':2, 'busy':3}
 
     def __init__(self, ip , port, nickname):
 
-        self.status = self.status_states['unregitered'] #True app is UP, False app is closing
+        self.status = self.status_states['unregitered'] 
 
         logging.basicConfig(filename='Client-'+ str(port) +'.log',
                             format='%(asctime)s %(message)s',
@@ -68,7 +73,7 @@ class Client(object):
         self.sock_udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock_udp.bind((self.UDP_IP, self.UDP_PORT))
         self.sock_udp.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.sock_udp.settimeout(1)
+        self.sock_udp.settimeout(1) #The socker is not blocked, the exception need to be managed
 
     def getTimestamp(self):
         ts = time.time()
@@ -79,6 +84,9 @@ class Client(object):
             msg = str(msg)
         print color + self.getTimestamp() + ' - ' + msg + bcolors.ENDC
 
+    #Send maessage to TCP server
+    #The connection is estabilished only to send the message after it will be closed
+    #Every message sent, expected an answer from server
     def sendMsgServer(self,msg):
 
         sock_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -89,7 +97,7 @@ class Client(object):
         try:
             sock_tcp.connect((self.SERVER_TCP_IP , self.SERVER_TCP_PORT))
             sock_tcp.sendall(msg)
-            self.printlog(bcolors.OKBLUE, "control -->  " + self.SERVER_TCP_IP+ ":" + str(self.SERVER_TCP_PORT) + bcolors.HEADER + " | " + msg)
+            #self.printlog(bcolors.OKBLUE, "control -->  " + self.SERVER_TCP_IP+ ":" + str(self.SERVER_TCP_PORT) + bcolors.HEADER + " | " + msg)
 
         except socket.error as e:
             self.printlog(bcolors.FAIL, "control -->  " + str(e))
@@ -104,27 +112,20 @@ class Client(object):
         sock_tcp.close()
         return data
 
-
+    ##################### Communication message with TCP server  #####################
+    #To perform tthe login when the client starts 
     def tcpServerSignIn(self):
         msg = str({"type":"control", "action": "sigin", "whoami":self.iam})
         data_raw = self.sendMsgServer(msg)
         if data_raw:
             data=eval(data_raw)
             if eval(data_raw)['action'] == 'signin' and eval(data_raw)['result'] == 'OK':
-                self.printlog(bcolors.OKGREEN, "OK")
-                return True
-            else:
-                return False
-    def tcpServerGrousUpdate(self, goup):
-        msg = str({"type":"control", "action": "updategroup", 'group': goup,'whoami':self.iam })
-        data_raw = self.sendMsgServer(msg)
-        if data_raw:
-            data=eval(data_raw)
-            if data['action'] == 'updategroup' and data['result'] == 'OK':
+                #self.printlog(bcolors.OKGREEN, "OK")
                 return True
             else:
                 return False
 
+    #To get the user which have done the SingIn into the server
     def tcpServerUsersList(self):
         msg = str({"type":"control", "action": "userslist", 'whoami':self.iam })
         data_raw = self.sendMsgServer(msg)
@@ -134,35 +135,25 @@ class Client(object):
                 str_answ = "\n"
                 for i in data['userslist'].iteritems():
                     i = re.search('\(\'(.*)\',', str(i)).group(1)
-                    if not re.search(str(self.nickname), str(i)):
+                    if not re.search(str(self.nickname), str(i)): #To remove the same user who has performed the request
                        str_answ += str(i) + '\n' 
-                self.printlog(bcolors.OKGREEN, str_answ)
+                #self.printlog(bcolors.OKGREEN, str_answ)
                 return True
 
-    def tcpServerGroupsList(self):
-        msg = str({"type":"control", "action": "groupslist", 'whoami':self.iam })
-        data_raw = self.sendMsgServer(msg)
-        if data_raw:
-            data=eval(data_raw)
-            if data['action'] == 'groupslist' and data['result'] == 'OK':
-                str_answ = "\n"
-                for i in data['groupslist'].iteritems():
-                    str_answ += str(i) + '\n'
-                    self.printlog(bcolors.OKGREEN, str_answ)
-
-                return data['groupslist']
-    #def tcpServerConnectToGroup(self):
-    #    list = tcpServerGroupsList()
-
-
+    #Notify to Server the switch off of the client 
     def tcpServerLogout(self):
         msg = str({"type":"control", "action": "logout", 'whoami':self.iam })
         data_raw = self.sendMsgServer(msg)
         if data_raw:
             data=eval(data_raw)
             if data['action'] == 'logout' and data['result'] == 'OK':
-                self.printlog(bcolors.OKGREEN, "OK")
+                #self.printlog(bcolors.OKGREEN, "OK")
+                return True
+            else:
+                self.printlog(bcolors.FAIL, "FAIL")
+                return False
 
+    #Ask to the server the info of the client (IP and port) 
     def tcpServerUserConnect(self, user):
         msg = str({"type":"control", "action": "userconnect", "user":user, 'whoami':self.iam})
         data_raw = self.sendMsgServer(msg)
@@ -178,6 +169,7 @@ class Client(object):
                 self.printlog(bcolors.FAIL, data['comment'])
                 return False
 
+    ##################### Communication message with Client  #####################
     def sendToClient(self, msg, ip = 'empty', port = 'empty'):
         #self.printlog(bcolors.OKGREEN, msg)
         if not isinstance(msg, basestring):
@@ -201,7 +193,7 @@ class Client(object):
         time.sleep(2)
         self.sock_udp.close()
 
-
+    #Thread to receive the message from other clients
     def thread_receive(self):
 
         def connectionApproved(addr, data):
@@ -213,22 +205,27 @@ class Client(object):
             self.printlog(bcolors.OKGREEN, 'you are connected with ' + data['whoami']['nickname'] )
 
 
-
+        #Loop will finish when the status is set with 'quit'
         while self.status:
             try:
                 udp_data_raw, addr = self.sock_udp.recvfrom(1024)
                 data = eval (udp_data_raw)
                 #self.printlog(bcolors.WARNING, data)
 
-                if data['type'] == 'control':
-                    if data['action'] == 'connect' and data['direction'] == 'ask':
+                if data['type'] == 'control':   #Control message
 
+                    #The control messages have two direction: ask, and answer
+                    #In case where the answer has not success a field 'comment' will be present
+                    #Every message is composed of the indication 'whoami', to make uniform the messages, it is useful only to manage the requests of the clients outside the chat section  
+                    if data['action'] == 'connect' and data['direction'] == 'ask':
+                        
+                        #Request to starrt the chat
                         if self.status != self.status_states['busy']:
                             confirm = raw_input(bcolors.WARNING + data['whoami']['nickname'] + " tries to connect with you, do you want? (yes/no) " + bcolors.ENDC).lower()
                             if not re.search(".*yes.*", confirm.strip()):
                                 msg = {"type":"control",  "action": "connect", "direction":"answ", "result":"FAIL", 'comment':'The user is not available', 'whoami':self.iam}
                                 self.sendToClient(msg, ip = addr[0], port = addr[1])
-                                continue
+                                continue #Not accepted, still in the state 'regitered'
                             connectionApproved(addr, data)
 
                         else:
@@ -240,6 +237,7 @@ class Client(object):
                                 self.disconnectFromUser()
                                 connectionApproved(addr, data)
 
+                    #Answer to connection request
                     elif data['action'] == 'connect' and data['direction'] == 'answ':
 
                         if data['result'] == 'OK':
@@ -250,17 +248,18 @@ class Client(object):
                         else:
                             self.printlog(bcolors.FAIL, 'the answer \"' + str(data) + '\" is not valid')
 
+                    #Notify from client that make quit or disconnect
                     elif data['action'] == 'disconnect':
                         self.status = self.status_states['regitered']
                         self.user_UDP_IP = ''
                         self.user_UDP_PORT = ''
                         self.printlog(bcolors.WARNING, 'the user ' + data['whoami']['nickname'] + ' is disconnected by you')
 
-                    #if data['action'] == 'connect' and data['direction'] == 'answ' and self.status != self.status_states['busy']:
-                        #self.status = self.status_states['busy']
+                #The message received is a text message
                 elif data['type'] == 'text':
                     self.printlog (bcolors.ENDC,  bcolors.OKBLUE + '[' + data['whoami']['nickname'] + ']' + bcolors.ENDC + ' - ' + data['msg'])
 
+            #Exception due to the receive is not in blocking mode. To allow to the thread the shutdown
             except socket.error as e:
                 #write to file or whatever
                 if str(e) == "[Errno 35] Resource temporarily unavailable":
@@ -274,6 +273,7 @@ class Client(object):
                     self.printlog(bcolors.WARNING, str(e))
 
 
+    #Thread to manage the commands from SDTIN
     def thread_commands(self):
         while self.status != self.status_states['quit']:
             if self.status == self.status_states['unregitered']:
@@ -284,13 +284,13 @@ class Client(object):
 
 
             i, o, e = select.select( [sys.stdin], [], [], 1 )
-            #data_string = raw_input("")
 
             if (i):
                 data_string = sys.stdin.readline().strip()
             else:
               continue
 
+            #To mange the command on STDIN
             if re.search("^!.*$", data_string):
 
                 #Command set
@@ -318,20 +318,6 @@ class Client(object):
                 elif data_string.lower() == '!usersList'.lower():
                         self.tcpServerUsersList()
 
-                elif data_string.lower() == '!groupsList'.lower():
-                        self.tcpServerGroupsList()
-                    #------------------- UPDATE GROUP
-                elif re.search("^!updateGroup.*$".lower(), data_string.lower()):
-                        goup = (data_string.strip().split(' '))[1:]
-                        goup.append(self.nickname)
-                        self.tcpServerGrousUpdate(goup)
-
-
-
-                #------------------- COONECT GROUP
-                elif re.search("^!connectGroup.*$", data_string):
-                    self.tcpServerConnectToGroup()
-
                 #------------------- QUIT
                 elif data_string == '!quit':
                     self.disconnectFromUser()
@@ -340,9 +326,10 @@ class Client(object):
 
                 #------------------- OUT OF RANGE
                 else:
-                    self.printlog(bcolors.WARNING, "Command not valid")
+                    self.printlog(bcolors.WARNING, "Command not valid\n")
                     self.printlog(bcolors.OKGREEN, help_message)
-            # chat Text
+
+            #Catch all text which is not a command (chat Text)
             else:
                 if self.status == self.status_states['busy']:
                     msg = ({"type":"text", 'msg': data_string ,'whoami':self.iam})
@@ -353,7 +340,9 @@ class Client(object):
         self.closeClient()
         self.printlog(bcolors.OKGREEN, 'Client shutdown...')
 
-
+    #Each client is composed of two thread:
+    # - self.thr_rcv: listen the message on the UDP socket (message from other client)
+    # - self.thr_cmd: Get string from STDIN (commands, chat text)
     def run(self):
 
         self.thr_rcv = threading.Thread(target=self.thread_receive)
