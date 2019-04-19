@@ -30,5 +30,5 @@ eg: `python chat_server 127.0.0.1 3000`
 
 # Usecases
 
-![link](usecases/usecase_diagram.pdf)
+![/img/pdf_512x512.png](usecases/usecase_diagram.pdf)
 
