@@ -51,10 +51,10 @@ class Client(object):
 
         self.status = self.status_states['unregitered'] 
 
-        logging.basicConfig(filename='Client-'+ str(port) +'.log',
-                            format='%(asctime)s %(message)s',
-                            datefmt='%m/%d/%Y %I:%M:%S %p',
-                            filemode='w', level=logging.DEBUG)
+        #logging.basicConfig(filename='Client-'+ str(port) +'.log',
+        #                    format='%(asctime)s %(message)s',
+        #                    datefmt='%m/%d/%Y %I:%M:%S %p',
+        #                    filemode='w', level=logging.DEBUG)
 
         self.UDP_IP = ip
         self.UDP_PORT = port
