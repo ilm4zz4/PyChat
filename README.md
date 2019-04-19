@@ -28,3 +28,8 @@ eg. `python chat_client foo 127.0.0.1 2001`
      the IP address and port specified is where the server is in listening to get the message from client. 
 eg: `python chat_server 127.0.0.1 3000`
 
+# Usecases
+
+[[/usecases/usecase_diagram.pdf|alt=octocat]]
+
+[embed]/usecases/usecase_diagram.pdf[/embed]
