@@ -75,6 +75,8 @@ class Client(object):
         self.sock_udp.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock_udp.settimeout(1) #The socker is not blocked, the exception need to be managed
 
+        self.printlog(bcolors.OKGREEN, 'The Client is running on ip: ' + self.UDP_IP + ', port: ' + str(self.UDP_PORT) + '\n' +  help_message)
+
     def getTimestamp(self):
         ts = time.time()
         return datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
