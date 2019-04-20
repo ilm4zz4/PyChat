@@ -10,9 +10,13 @@ The client application:
 * perform send and reccive messages
 * two client exchange the messages one each other in peer-to-peer (by UDP protocol)
 * Each client is run by the command:
+
 `python Client.py <Nickname> <IP-address> <port>`
+
 * The IP address and port are the interfaces where the client receives the message from othe clients.
+
 eg. `python chat_client foo 127.0.0.1 2001`
+
 * provide a textual interface where the commands could be run to perform specific operation.
     * !help --> show the commands available
     * !connect user --> start a new chat with the specific user
