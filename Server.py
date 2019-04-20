@@ -29,17 +29,11 @@ class bcolors:
 
 help_message="""
 Available Commands:
-!help --> mostra l'elenco dei comandi disponibili
+!help --> show the set of the commands
 !reset username --> to remove from the register
 !list --> List of active clients
 !quit --> terminazione
 """
-
-class Message(object):
-        def __init__(self):
-            type={'invalid':0, control:'1', 'text':2}
-            self.type = type['invalid']
-            self.message = ""
 
 class Server(object):
 
@@ -47,10 +41,10 @@ class Server(object):
 
         self.register = dict()
 
-        logging.basicConfig(filename='Server.log',
-                        format='%(asctime)s %(message)s',
-                        datefmt='%m/%d/%Y %I:%M:%S %p',
-                        filemode='w', level=loglevel)
+        #logging.basicConfig(filename='Server.log',
+        #                format='%(asctime)s %(message)s',
+        #                datefmt='%m/%d/%Y %I:%M:%S %p',
+        #                filemode='w', level=loglevel)
 
         self.status = True #True app is UP, False app is closing
         self.TCP_IP = ip
@@ -61,7 +55,7 @@ class Server(object):
         self.tcpSock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.tcpSock.bind((self.TCP_IP, self.TCP_PORT))
         self.tcpSock.listen(10)
-        self.tcpSock.settimeout(1)
+        self.tcpSock.settimeout(1) #Not blocked
 
         self.printlog(bcolors.OKGREEN, 'The server is running on ip: ' + self.TCP_IP + ', port: ' + str(self.TCP_PORT) + '\n' +  help_message)
         print
@@ -90,30 +84,29 @@ class Server(object):
         thread_status = True
 
         while self.status and thread_status:
-            #-----------------
+
+############### START INNER FUNCTION  ##########################              
+
+            #The logic to manage the massage received from the client
             def unpuck(data):
 
+                #The client need to notify itself to Server
                 if data['action'] == "sigin":
                     if nickname not in self.register:
                         self.register[nickname] = str(ip + ':' + port)
-                        print "aggiungo"
+                        self.printlog(bcolors.OKGREEN, nickname + ' got in')
                         msg="{'action':'signin', 'result':'OK'}"
                     else:
-                        print "errore"
                         msg="{'action':'signin', 'result':'ERR', 'comment':'user already present'}"
 
+                #The client need to get the user registered 
                 elif data['action'] == "userslist":
                     if len(self.register) > 0:
                         msg = str({'action':'userslist', 'result':'OK', 'userslist':self.register})
                     else:
                         msg = str({'action':'userslist', 'result':'FAIL', 'comment':'user list is empty'})
 
-                elif data['action'] == "groupslist":
-                    if len(self.register['groupslist']) > 0:
-                        msg = str({'action':'groupslist', 'result':'OK', 'groupslist':self.register['groupslist']})
-                    else:
-                        msg = str({'action':'groupslist', 'result':'FAIL', 'comment':'user list is empty'})
-
+                #The client ask about a client info
                 elif data['action'] == "userconnect":
                     if data['user'] != nickname:
                         try:
@@ -123,25 +116,18 @@ class Server(object):
                     else:
                         msg = str({'action':'userslist', 'result':'FAIL', 'comment':'you con not ask me about yourself!'})
 
-                elif data['action'] == "updategroup":
-                    data['group']
-                    self.register['groupslist'][data['group'][0]] = dict()
-                    for i in data['group'][1:]:
-                        #register       #group dict    #group name    #entry "nickname":"ip:port"
-                        self.register['groupslist'][data['group'][0]][i] = self.register[i]
-
-                    msg = str({'action':'updategroup', 'result':'OK'})
-
-
+                #The client notify he is in shutdown
                 elif data['action'] == "logout":
                     del self.register[nickname]
+                    self.printlog(bcolors.OKGREEN, nickname + ' got out')
                     msg="{'action':'logout', 'result':'OK'}"
 
                 else:
-                   print "message not valid"
+                   self.printlog(bcolors.FAIL, "message not valid: " + str(data) )
 
                 return msg
 
+############### END INNER FUNCTION  ##########################              
 
             try:
 
@@ -156,10 +142,11 @@ class Server(object):
                     msg = unpuck(msg)
                     con.sendall(msg)
 
-                    #The message is sent, we can terminate the process
+                    #The message is sent, we can terminate the process thread
                     thread_status = False
 
 
+            #The socket is not blocked
             except socket.error as e:
 
                 if str(e) == "[Errno 35] Resource temporarily unavailable":
@@ -175,14 +162,14 @@ class Server(object):
         #self.printlog(bcolors.WARNING, 'The conection with Client: ' + nickname + ',' + ip + ':' + str(port) + ' is terminated')
 
 
-
+    #Manage the incoming connection
     def thread_accept(self):
 
         while self.status:
 
             try:
                 conn, addr = self.tcpSock.accept()
-                self.printlog(bcolors.OKGREEN, 'Connected with ' + addr[0] + ':' + str(addr[1]))
+                #self.printlog(bcolors.OKGREEN, 'Connected with ' + addr[0] + ':' + str(addr[1]))
                 start_new_thread(self.thread_client ,(conn,addr))
 
             except socket.timeout:
@@ -192,7 +179,7 @@ class Server(object):
                 print str(e)
 
 
-
+    #To manage the command in STDIN
     def thread_commands(self):
         while self.status:
 
@@ -222,7 +209,6 @@ class Server(object):
                         for i in self.register.iteritems():
                             str_tmp += str(i)+'\n'
                         self.printlog(bcolors.OKGREEN, str_tmp)
-                   # for i in self.register.
 
                 else:
                     print bcolors.WARNING + 'Command not valid' + bcolors.ENDC
@@ -235,6 +221,9 @@ class Server(object):
 
         self.printlog(bcolors.WARNING, 'Command terminal is closed')
 
+    #The server is composed at least of two threads:
+    # - self.thr_acpt: to manage incoming connections
+    # - self.thr_cmd: to manage tha command from STDIN
     def run(self):
         self.thr_acpt = threading.Thread(target=self.thread_accept)
         self.thr_acpt.daemon = True
