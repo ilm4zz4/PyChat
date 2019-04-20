@@ -56,23 +56,28 @@ class Client(object):
         #                    datefmt='%m/%d/%Y %I:%M:%S %p',
         #                    filemode='w', level=logging.DEBUG)
 
-        self.UDP_IP = ip
-        self.UDP_PORT = port
-
-        self.user_UDP_IP=""
-        self.user_UDP_PORT=""
-
-        self.SERVER_TCP_IP = "127.0.0.1"
-        self.SERVER_TCP_PORT = 3000
         self.thr_rcv  = ""
         self.thr_term = ""
         self.nickname = nickname
 
+        self.user_UDP_IP=""
+        self.user_UDP_PORT=""
+
+        self.UDP_IP = ip
+        self.UDP_PORT = port
 
         self.sock_udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock_udp.bind((self.UDP_IP, self.UDP_PORT))
         self.sock_udp.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock_udp.settimeout(1) #The socker is not blocked, the exception need to be managed
+
+        self.SERVER_TCP_IP = "127.0.0.1"
+        self.SERVER_TCP_PORT = 3000
+
+        if not self.getConnectionServer():
+            self.printlog(bcolors.FAIL, "Any Sever is present at address: " + self.SERVER_TCP_IP + " and port: " + str(self.SERVER_TCP_PORT))
+            self.sock_udp.close()
+            exit (1)
 
         self.printlog(bcolors.OKGREEN, 'The Client is running on ip: ' + self.UDP_IP + ', port: ' + str(self.UDP_PORT) + '\n' +  help_message)
         self.updateIam()
@@ -89,19 +94,29 @@ class Client(object):
             msg = str(msg)
         print color + self.getTimestamp() + ' - ' + msg + bcolors.ENDC
 
-    #Send maessage to TCP server
+    #Send message to TCP server
     #The connection is estabilished only to send the message after it will be closed
     #Every message sent, expected an answer from server
-    def sendMsgServer(self,msg):
+    def getConnectionServer(self):
+        print self.SERVER_TCP_IP + str(self.SERVER_TCP_PORT)
+        try:
+            self.sock_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.sock_tcp.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            self.sock_tcp.settimeout(6)
+            self.sock_tcp.connect((self.SERVER_TCP_IP , self.SERVER_TCP_PORT))
+            return True
+        except  socket.error as e:
+            print e
 
-        sock_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock_tcp.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock_tcp.settimeout(2)
+
+    def closeConnectionServer(self):
+        self.sock_tcp.close()
+         
+    def sendMsgServer(self,msg):
 
         #----------Transmit Request-------------------
         try:
-            sock_tcp.connect((self.SERVER_TCP_IP , self.SERVER_TCP_PORT))
-            sock_tcp.sendall(msg)
+            self.sock_tcp.sendall(msg)
             #self.printlog(bcolors.OKBLUE, "control -->  " + self.SERVER_TCP_IP+ ":" + str(self.SERVER_TCP_PORT) + bcolors.HEADER + " | " + msg)
 
         except socket.error as e:
@@ -112,12 +127,11 @@ class Client(object):
 
         #----------Receive Answer-------------------
         try:
-            data = sock_tcp.recv(1024)
+            data = self.sock_tcp.recv(1024)
         except socket.error as e:
             self.printlog(bcolors.FAIL, "control -->  " + str(e))
             data=str({'action':'signin', 'result':'ERR', 'comment':'Server could be unreachable'})
             self.status = self.status_states['unregitered']    
-        sock_tcp.close()
         return data
 
     ##################### Communication message with TCP server  #####################
@@ -216,8 +230,8 @@ class Client(object):
         while self.status:
             try:
                 udp_data_raw, addr = self.sock_udp.recvfrom(1024)
+                #self.printlog(bcolors.WARNING, udp_data_raw)
                 data = eval (udp_data_raw)
-                #self.printlog(bcolors.WARNING, data)
 
                 if data['type'] == 'control':   #Control message
 
@@ -283,6 +297,7 @@ class Client(object):
     #Thread to manage the commands from SDTIN
     def thread_commands(self):
         while self.status != self.status_states['quit']:
+            #print self.status
             if self.status == self.status_states['unregitered']:
                status, comment = self.tcpServerSignIn()
                if status:
