@@ -55,7 +55,7 @@ class Server(object):
         self.tcpSock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.tcpSock.bind((self.TCP_IP, self.TCP_PORT))
         self.tcpSock.listen(10)
-        self.tcpSock.settimeout(1) #Not blocked
+        self.tcpSock.settimeout(5) #Not blocked
 
         self.printlog(bcolors.OKGREEN, 'The server is running on ip: ' + self.TCP_IP + ', port: ' + str(self.TCP_PORT) + '\n' +  help_message)
         print
@@ -132,7 +132,7 @@ class Server(object):
             try:
 
                 data = con.recv(1024)
-
+                #self.printlog(bcolors.UNDERLINE,data)
                 if data:
                     msg=eval(data)
                     ip = msg['whoami']['ip']
@@ -143,7 +143,8 @@ class Server(object):
                     con.sendall(msg)
 
                     #The message is sent, we can terminate the process thread
-                    thread_status = False
+                    if eval(msg)['action'] == 'logout':
+                       thread_status = False
 
 
             #The socket is not blocked
@@ -152,8 +153,11 @@ class Server(object):
                 if str(e) == "[Errno 35] Resource temporarily unavailable":
                    time.sleep(1)
                    #continue
+                elif str(e) == '[Errno 54] Connection reset by peer':
+                    #self.printlog(bcolors.OKGREEN, nickname + " has gone")
+                    thread_status = False
                 else:
-                   print "Excpetion on self.sock.recvfrom: " + str(e)
+                   #print "Excpetion on self.sock.recvfrom: " + str(e)
                    self.printlog(bcolors.FAIL, 'Excpetion on self.sock.recvfrom: ' + str(e))
 
 
@@ -175,7 +179,6 @@ class Server(object):
             except socket.timeout:
                 pass
             except socket.error as e:
-
                 print str(e)
 
 
