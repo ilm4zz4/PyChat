@@ -139,7 +139,7 @@ class Client(object):
                     i = re.search('\(\'(.*)\',', str(i)).group(1)
                     if not re.search(str(self.nickname), str(i)): #To remove the same user who has performed the request
                        str_answ += str(i) + '\n' 
-                #self.printlog(bcolors.OKGREEN, str_answ)
+                self.printlog(bcolors.OKGREEN, str_answ)
                 return True
 
     #Notify to Server the switch off of the client 
