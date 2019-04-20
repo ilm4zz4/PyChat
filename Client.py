@@ -68,7 +68,6 @@ class Client(object):
         self.thr_term = ""
         self.nickname = nickname
 
-        self.iam={"nickname":self.nickname, "ip":self.UDP_IP, "port":str(self.UDP_PORT)}
 
         self.sock_udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock_udp.bind((self.UDP_IP, self.UDP_PORT))
@@ -76,6 +75,10 @@ class Client(object):
         self.sock_udp.settimeout(1) #The socker is not blocked, the exception need to be managed
 
         self.printlog(bcolors.OKGREEN, 'The Client is running on ip: ' + self.UDP_IP + ', port: ' + str(self.UDP_PORT) + '\n' +  help_message)
+        self.updateIam()
+
+    def updateIam(self):
+        self.iam={"nickname":self.nickname, "ip":self.UDP_IP, "port":str(self.UDP_PORT)}
 
     def getTimestamp(self):
         ts = time.time()
@@ -283,6 +286,8 @@ class Client(object):
                    self.status = self.status_states['regitered']
                else:
                    self.nickname = raw_input('Nickname \'' + self.nickname + '\'  already present.\nPlease, choose a different name: ')
+                   self.updateIam()
+                   continue
 
 
             i, o, e = select.select( [sys.stdin], [], [], 1 )
