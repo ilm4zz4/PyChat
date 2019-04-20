@@ -37,5 +37,5 @@ eg: `python Server.py 127.0.0.1 3000`
 
 # Usecases
 
-Read more [here](./usecases/usecase_diagram.pdf)  
+Read more [here](./usecases/usecases_diagram.pdf)  
 
