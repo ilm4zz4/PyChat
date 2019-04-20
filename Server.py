@@ -94,6 +94,7 @@ class Server(object):
                 if data['action'] == "sigin":
                     if nickname not in self.register:
                         self.register[nickname] = str(ip + ':' + port)
+                        self.printlog(bcolors.OKGREEN, nickname + ' added to DB')
                         msg="{'action':'signin', 'result':'OK'}"
                     else:
                         msg="{'action':'signin', 'result':'ERR', 'comment':'user already present'}"

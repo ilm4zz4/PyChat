@@ -106,14 +106,17 @@ class Client(object):
 
         except socket.error as e:
             self.printlog(bcolors.FAIL, "control -->  " + str(e))
-            return
+            self.status = self.status_states['unregitered']    
+            data=str({'action':'signin', 'result':'ERR', 'comment':'Server could be unreachable'})
+            return data
 
         #----------Receive Answer-------------------
         try:
             data = sock_tcp.recv(1024)
         except socket.error as e:
             self.printlog(bcolors.FAIL, "control -->  " + str(e))
-            data=""
+            data=str({'action':'signin', 'result':'ERR', 'comment':'Server could be unreachable'})
+            self.status = self.status_states['unregitered']    
         sock_tcp.close()
         return data
 
@@ -123,12 +126,11 @@ class Client(object):
         msg = str({"type":"control", "action": "sigin", "whoami":self.iam})
         data_raw = self.sendMsgServer(msg)
         if data_raw:
-            data=eval(data_raw)
             if eval(data_raw)['action'] == 'signin' and eval(data_raw)['result'] == 'OK':
                 #self.printlog(bcolors.OKGREEN, "OK")
-                return True
+                return True, "no comment"
             else:
-                return False
+                return False, eval(data_raw)['comment']
 
     #To get the user which have done the SingIn into the server
     def tcpServerUsersList(self):
@@ -282,8 +284,15 @@ class Client(object):
     def thread_commands(self):
         while self.status != self.status_states['quit']:
             if self.status == self.status_states['unregitered']:
-               if self.tcpServerSignIn():
+               print "loop"
+               status, comment = self.tcpServerSignIn()
+               if status:
                    self.status = self.status_states['regitered']
+                   self.printlog(bcolors.OKGREEN, "SignIn into server has been performed with success")
+               elif comment == 'Server could be unreachable':
+                   self.printlog(bcolors.FAIL, comment)
+                   pass
+
                else:
                    self.nickname = raw_input('Nickname \'' + self.nickname + '\'  already present.\nPlease, choose a different name: ')
                    self.updateIam()
@@ -323,11 +332,12 @@ class Client(object):
 
                 #------------------- LIST
                 elif data_string.lower() == '!usersList'.lower():
-                        self.tcpServerUsersList()
+                    self.tcpServerUsersList()
 
                 #------------------- QUIT
                 elif data_string == '!quit':
-                    self.disconnectFromUser()
+                    if self.status != self.status_states['busy']:
+                        self.disconnectFromUser()
                     self.tcpServerLogout()
                     self.status = self.status_states['quit']
 
