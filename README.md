@@ -7,8 +7,8 @@ PyChat implements a chat system composed of:
 # The Client
 
 The client application:
-* perform send and reccive message
-* two client exchange the messages one eache other in peer-to-peer by UDP connnection
+* perform send and reccive messages
+* two client exchange the messages one each other in peer-to-peer (by UDP protocol)
 * Each client is run by the command:
 `python Client.py <Nickname> <IP-address> <port>`
 * The IP address and port are the interfaces where the client receives the message from othe clients.
@@ -23,9 +23,12 @@ eg. `python chat_client foo 127.0.0.1 2001`
 # The Server
 
 * In order to get IP addresses and port by the nickname each clients get contact with the Server
-• The server application can be run by the command:
+ The server application can be run by the command:
+
 `python Server.py <IP address> <port>`
-     the IP address and port specified is where the server is in listening to get the message from client. 
+
+* the IP address and port specified is where the server is in listening to get the message from client. 
+
 eg: `python chat_server 127.0.0.1 3000`
 
 # Usecases
