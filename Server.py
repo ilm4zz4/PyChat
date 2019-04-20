@@ -119,7 +119,7 @@ class Server(object):
                 #The client notify he is in shutdown
                 elif data['action'] == "logout":
                     del self.register[nickname]
-                    self.printlog(bcolors.OKGREEN, nickname + 'got out')
+                    self.printlog(bcolors.OKGREEN, nickname + ' got out')
                     msg="{'action':'logout', 'result':'OK'}"
 
                 else:
