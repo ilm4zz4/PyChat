@@ -98,7 +98,7 @@ class Client(object):
     #The connection is estabilished only to send the message after it will be closed
     #Every message sent, expected an answer from server
     def getConnectionServer(self):
-        print self.SERVER_TCP_IP + str(self.SERVER_TCP_PORT)
+        #self.printlog(bcolors.UNDERLINE, self.SERVER_TCP_IP + str(self.SERVER_TCP_PORT)
         try:
             self.sock_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.sock_tcp.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -106,7 +106,7 @@ class Client(object):
             self.sock_tcp.connect((self.SERVER_TCP_IP , self.SERVER_TCP_PORT))
             return True
         except  socket.error as e:
-            print e
+            self.printlog(bcolors.FAIL, e)
 
 
     def closeConnectionServer(self):
@@ -297,7 +297,6 @@ class Client(object):
     #Thread to manage the commands from SDTIN
     def thread_commands(self):
         while self.status != self.status_states['quit']:
-            #print self.status
             if self.status == self.status_states['unregitered']:
                status, comment = self.tcpServerSignIn()
                if status:
@@ -350,7 +349,7 @@ class Client(object):
 
                 #------------------- QUIT
                 elif data_string == '!quit':
-                    if self.status != self.status_states['busy']:
+                    if self.status== self.status_states['busy']:
                         self.disconnectFromUser()
                     self.tcpServerLogout()
                     self.status = self.status_states['quit']

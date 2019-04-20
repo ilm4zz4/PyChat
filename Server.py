@@ -140,7 +140,6 @@ class Server(object):
                     nickname = msg['whoami']['nickname']
 
                     msg = unpuck(msg)
-                    self.printlog(bcolors.UNDERLINE, str(msg))
                     con.sendall(msg)
 
                     #The message is sent, we can terminate the process thread
@@ -158,7 +157,7 @@ class Server(object):
                     #self.printlog(bcolors.OKGREEN, nickname + " has gone")
                     thread_status = False
                 else:
-                   print "Excpetion on self.sock.recvfrom: " + str(e)
+                   #print "Excpetion on self.sock.recvfrom: " + str(e)
                    self.printlog(bcolors.FAIL, 'Excpetion on self.sock.recvfrom: ' + str(e))
 
 
@@ -180,7 +179,6 @@ class Server(object):
             except socket.timeout:
                 pass
             except socket.error as e:
-
                 print str(e)
 
 
