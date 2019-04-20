@@ -94,6 +94,7 @@ class Server(object):
                 if data['action'] == "sigin":
                     if nickname not in self.register:
                         self.register[nickname] = str(ip + ':' + port)
+                        self.printlog(bcolors.OKGREEN, nickname + ' got in')
                         msg="{'action':'signin', 'result':'OK'}"
                     else:
                         msg="{'action':'signin', 'result':'ERR', 'comment':'user already present'}"
@@ -118,6 +119,7 @@ class Server(object):
                 #The client notify he is in shutdown
                 elif data['action'] == "logout":
                     del self.register[nickname]
+                    self.printlog(bcolors.OKGREEN, nickname + 'got out')
                     msg="{'action':'logout', 'result':'OK'}"
 
                 else:
