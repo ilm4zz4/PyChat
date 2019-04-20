@@ -85,7 +85,7 @@ class Server(object):
 
         while self.status and thread_status:
 
-############### START INNER FUNCTION  ##########################              
+############### START INNER FUNCTION  ##########################
 
             #The logic to manage the massage received from the client
             def unpuck(data):
@@ -99,7 +99,7 @@ class Server(object):
                     else:
                         msg="{'action':'signin', 'result':'ERR', 'comment':'user already present'}"
 
-                #The client need to get the user registered 
+                #The client need to get the user registered
                 elif data['action'] == "userslist":
                     if len(self.register) > 0:
                         msg = str({'action':'userslist', 'result':'OK', 'userslist':self.register})
@@ -127,12 +127,12 @@ class Server(object):
 
                 return msg
 
-############### END INNER FUNCTION  ##########################              
+############### END INNER FUNCTION  ##########################
 
             try:
 
-                data = con.recv(1024)
-                #self.printlog(bcolors.UNDERLINE,data)
+                data = (con.recv(1024)).strip()
+                self.printlog(bcolors.UNDERLINE,data)
                 if data:
                     msg=eval(data)
                     ip = msg['whoami']['ip']

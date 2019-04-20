@@ -49,7 +49,7 @@ class Client(object):
 
     def __init__(self, ip , port, nickname):
 
-        self.status = self.status_states['unregitered'] 
+        self.status = self.status_states['unregitered']
 
         #logging.basicConfig(filename='Client-'+ str(port) +'.log',
         #                    format='%(asctime)s %(message)s',
@@ -111,7 +111,7 @@ class Client(object):
 
     def closeConnectionServer(self):
         self.sock_tcp.close()
-         
+
     def sendMsgServer(self,msg):
 
         #----------Transmit Request-------------------
@@ -121,74 +121,34 @@ class Client(object):
 
         except socket.error as e:
             self.printlog(bcolors.FAIL, "control -->  " + str(e))
-            self.status = self.status_states['unregitered']    
-            data=str({'action':'signin', 'result':'ERR', 'comment':'Server could be unreachable'})
-            return data
+            self.status = self.status_states['unregitered']
 
-        #----------Receive Answer-------------------
-        try:
-            data = self.sock_tcp.recv(1024)
-        except socket.error as e:
-            self.printlog(bcolors.FAIL, "control -->  " + str(e))
-            data=str({'action':'signin', 'result':'ERR', 'comment':'Server could be unreachable'})
-            self.status = self.status_states['unregitered']    
-        return data
+            return {'action':'signin', 'result':'ERR', 'comment':'Server could be unreachable'}
 
     ##################### Communication message with TCP server  #####################
-    #To perform tthe login when the client starts 
+    #To perform tthe login when the client starts
     def tcpServerSignIn(self):
         msg = str({"type":"control", "action": "sigin", "whoami":self.iam})
         data_raw = self.sendMsgServer(msg)
-        if data_raw:
-            if eval(data_raw)['action'] == 'signin' and eval(data_raw)['result'] == 'OK':
-                #self.printlog(bcolors.OKGREEN, "OK")
-                return True, "no comment"
-            else:
-                return False, eval(data_raw)['comment']
+        return data_raw
 
     #To get the user which have done the SingIn into the server
     def tcpServerUsersList(self):
         msg = str({"type":"control", "action": "userslist", 'whoami':self.iam })
         data_raw = self.sendMsgServer(msg)
-        if data_raw:
-            data=eval(data_raw)
-            if data['action'] == 'userslist' and data['result'] == 'OK':
-                str_answ = "\n"
-                for i in data['userslist'].iteritems():
-                    i = re.search('\(\'(.*)\',', str(i)).group(1)
-                    if not re.search(str(self.nickname), str(i)): #To remove the same user who has performed the request
-                       str_answ += str(i) + '\n' 
-                self.printlog(bcolors.OKGREEN, str_answ)
-                return True
+        #return data_raw
 
-    #Notify to Server the switch off of the client 
+    #Notify to Server the switch off of the client
     def tcpServerLogout(self):
         msg = str({"type":"control", "action": "logout", 'whoami':self.iam })
         data_raw = self.sendMsgServer(msg)
-        if data_raw:
-            data=eval(data_raw)
-            if data['action'] == 'logout' and data['result'] == 'OK':
-                #self.printlog(bcolors.OKGREEN, "OK")
-                return True
-            else:
-                self.printlog(bcolors.FAIL, "FAIL")
-                return False
+        return data_raw
 
-    #Ask to the server the info of the client (IP and port) 
+    #Ask to the server the info of the client (IP and port)
     def tcpServerUserConnect(self, user):
         msg = str({"type":"control", "action": "userconnect", "user":user, 'whoami':self.iam})
         data_raw = self.sendMsgServer(msg)
-        if data_raw:
-            data=eval(data_raw)
-            if data['action'] == 'userconnect' and data['result'] == 'OK':
-                field = data['user']
-                tup = field.split(':')
-                self.user_UDP_IP = tup[0]
-                self.user_UDP_PORT = int(tup[1])
-                return True
-            else:
-                self.printlog(bcolors.FAIL, data['comment'])
-                return False
+        return data_raw
 
     ##################### Communication message with Client  #####################
     def sendToClient(self, msg, ip = 'empty', port = 'empty'):
@@ -231,15 +191,15 @@ class Client(object):
             try:
                 udp_data_raw, addr = self.sock_udp.recvfrom(1024)
                 #self.printlog(bcolors.WARNING, udp_data_raw)
-                data = eval (udp_data_raw)
+                data = eval (udp_data_raw.strip())
 
                 if data['type'] == 'control':   #Control message
 
                     #The control messages have two direction: ask, and answer
                     #In case where the answer has not success a field 'comment' will be present
-                    #Every message is composed of the indication 'whoami', to make uniform the messages, it is useful only to manage the requests of the clients outside the chat section  
+                    #Every message is composed of the indication 'whoami', to make uniform the messages, it is useful only to manage the requests of the clients outside the chat section
                     if data['action'] == 'connect' and data['direction'] == 'ask':
-                        
+
                         #Request to starrt the chat
                         if self.status != self.status_states['busy']:
                             confirm = raw_input(bcolors.WARNING + data['whoami']['nickname'] + " tries to connect with you, do you want? (yes/no) " + bcolors.ENDC).lower()
@@ -298,18 +258,9 @@ class Client(object):
     def thread_commands(self):
         while self.status != self.status_states['quit']:
             if self.status == self.status_states['unregitered']:
-               status, comment = self.tcpServerSignIn()
-               if status:
-                   self.status = self.status_states['regitered']
-                   self.printlog(bcolors.OKGREEN, "SignIn into server has been performed with success")
-               elif comment == 'Server could be unreachable':
-                   self.printlog(bcolors.FAIL, comment)
-                   pass
+                self.tcpServerSignIn()
+                time.sleep(3)
 
-               else:
-                   self.nickname = raw_input('Nickname \'' + self.nickname + '\'  already present.\nPlease, choose a different name: ')
-                   self.updateIam()
-                   continue
 
 
             i, o, e = select.select( [sys.stdin], [], [], 1 )
@@ -370,6 +321,73 @@ class Client(object):
         self.closeClient()
         self.printlog(bcolors.OKGREEN, 'Client shutdown...')
 
+    #Thread to manage the tcp connection
+    def thread_tcp(self):
+
+        while self.status != self.status_states['quit']:
+            #----------Receive Answer-------------------
+            try:
+                data_raw = self.sock_tcp.recv(1024)
+
+            except socket.error as e:
+                print str(e)
+                #self.printlog(bcolors.FAIL, "control -->  " + str(e))
+                #data=str({'action':'signin', 'result':'ERR', 'comment':'Server could be unreachable'})
+                self.status = self.status_states['unregitered']
+            #return data
+            if data_raw:
+                data=eval(data_raw)
+                if data['action'] == 'signin':
+                    if data['result'] == 'OK':
+                        #pass
+                    #self.printlog(bcolors.OKGREEN, "OK")
+                    #return True, "no comment"
+                     #if status:
+
+                         self.status = self.status_states['regitered']
+                         self.printlog(bcolors.OKGREEN, "SignIn into server has been performed with success")
+                     #elif comment == 'Server could be unreachable':
+                        # self.printlog(bcolors.FAIL, comment)
+                        # pass
+
+                    #else:
+                         #self.nickname = raw_input('Nickname \'' + self.nickname + '\'  already present.\nPlease, choose a different name: ')
+                         #self.updateIam()
+                         #continue
+                #else:
+                    #return False, eval(data_raw)['comment']
+
+                if data['action'] == 'userslist' and data['result'] == 'OK':
+                    str_answ = "\n"
+                    for i in data['userslist'].iteritems():
+                        i = re.search('\(\'(.*)\',', str(i)).group(1)
+                        if not re.search(str(self.nickname), str(i)): #To remove the same user who has performed the request
+                           str_answ += str(i) + '\n'
+                    self.printlog(bcolors.OKGREEN, str_answ)
+                    #return True
+
+
+                if data['action'] == 'logout':
+                    if data['result'] == 'OK':
+                        pass
+                    #self.printlog(bcolors.OKGREEN, "OK")
+                    #return True
+                    else:
+                        self.printlog(bcolors.FAIL, "FAIL")
+                    #return False
+
+                if data['action'] == 'userconnect':
+                    if data['result'] == 'OK':
+                        field = data['user']
+                        tup = field.split(':')
+                        self.user_UDP_IP = tup[0]
+                        self.user_UDP_PORT = int(tup[1])
+                        #return True
+                    else:
+                        self.printlog(bcolors.FAIL, data['comment'])
+                        #return False
+
+
     #Each client is composed of two thread:
     # - self.thr_rcv: listen the message on the UDP socket (message from other client)
     # - self.thr_cmd: Get string from STDIN (commands, chat text)
@@ -383,8 +401,13 @@ class Client(object):
         self.thr_cmd.daemon = True
         self.thr_cmd.start()
 
+        self.thr_tcp = threading.Thread(target=self.thread_tcp)
+        self.thr_tcp.daemon = True
+        self.thr_tcp.start()
+
         self.thr_rcv.join()
         self.thr_cmd.join()
+        self.thr_tcp.join()
 
 
 
