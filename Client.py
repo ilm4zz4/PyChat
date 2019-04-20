@@ -284,7 +284,6 @@ class Client(object):
     def thread_commands(self):
         while self.status != self.status_states['quit']:
             if self.status == self.status_states['unregitered']:
-               print "loop"
                status, comment = self.tcpServerSignIn()
                if status:
                    self.status = self.status_states['regitered']
