@@ -15,7 +15,7 @@ The client application:
 
 * The IP address and port are the interfaces where the client receives the message from othe clients.
 
-eg. `python chat_client foo 127.0.0.1 2001`
+eg. `python Client.py foo 127.0.0.1 2001`
 
 * provide a textual interface where the commands could be run to perform specific operation.
     * !help --> show the commands available
@@ -33,7 +33,7 @@ eg. `python chat_client foo 127.0.0.1 2001`
 
 * the IP address and port specified is where the server is in listening to get the message from client. 
 
-eg: `python chat_server 127.0.0.1 3000`
+eg: `python Server.py 127.0.0.1 3000`
 
 # Usecases
 
